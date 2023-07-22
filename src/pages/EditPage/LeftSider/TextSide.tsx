@@ -1,5 +1,8 @@
 import { defaultComponentStyle } from 'src/utils/const'
 import leftSideStyles from './leftSide.module.less'
+import useEditStore from 'src/store/editStore'
+import { isTextComponent } from '.'
+import { memo } from 'react'
 
 const defaultStyle = {
   ...defaultComponentStyle,
@@ -29,18 +32,27 @@ const settings = [
     value: '双击编辑正文',
     style: defaultStyle,
   },
-  {
-    value: '双击编辑正文',
-    style: defaultStyle,
-  },
 ]
 
-export default function TextSide() {
+const TextSide = memo(() => {
+  const { addCmp } = useEditStore()
+
   return (
     <div className={leftSideStyles.main}>
       <ul className={leftSideStyles.box}>
         {settings.map((item) => (
-          <li key={item.value} className={leftSideStyles.item}>
+          <li
+            draggable={true}
+            key={item.value}
+            className={leftSideStyles.item}
+            onClick={() => addCmp({ ...item, type: isTextComponent })}
+            onDragStart={(e) => {
+              e.dataTransfer.setData(
+                'drag-cmp',
+                JSON.stringify({ ...item, type: isTextComponent })
+              )
+            }}
+          >
             {item.value.indexOf('双击编辑') > -1
               ? item.value.slice(4)
               : item.value}
@@ -49,4 +61,6 @@ export default function TextSide() {
       </ul>
     </div>
   )
-}
+})
+
+export default TextSide
