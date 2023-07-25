@@ -1,34 +1,32 @@
 import { Button, Form, Input, Checkbox, Modal } from 'antd'
-import { login, logout } from 'src/request/user'
-import { register } from 'src/request/register'
-import docCookies from 'src/utils/cookies'
+import { useEffect } from 'react'
+import Axios from 'src/request/axios'
+import { registerEnd } from 'src/request/end'
+import useGlobalStore from 'src/store/globalStore'
+import useUserStore, { fetchUserInfo, login, logout } from 'src/store/userStore'
 
 export default function Login() {
-  // 校验是否登录
-  const auth = docCookies.getItem('sessionId')
-  const name = docCookies.getItem('name')
+  // 校验登录
+  const { isLogin, name } = useUserStore()
+  const loading = useGlobalStore((state) => state.loading)
 
-  const handleOk = () => {
-    window.location.reload()
+  useEffect(() => {
+    fetchUserInfo()
+  }, [])
+
+  if (loading) {
+    return
   }
 
-  // 已经登录，那就显示用户信息，退出登录
-  if (auth) {
+  // 用户已经登录，显示用户信息
+  if (isLogin) {
     return (
-      <Button
-        style={{ float: 'right', marginTop: 16 }}
-        onClick={() => {
-          logout(() => {
-            handleOk()
-          })
-        }}
-      >
-        {name} 退出登录
+      <Button style={{ float: 'right', marginTop: 16 }} onClick={logout}>
+        {name}退出登录
       </Button>
     )
   }
-
-  // 没有登录，显示登录框
+  // 用户没有登录，显示登录框
   const onFinish = ({
     name,
     password,
@@ -43,9 +41,7 @@ export default function Login() {
     if (register_login) {
       registerAndLogin({ name, password })
     } else {
-      login({ name, password }, () => {
-        handleOk()
-      })
+      login({ name, password })
     }
   }
 
@@ -53,12 +49,14 @@ export default function Login() {
     console.log('Failed:', errorInfo)
   }
 
-  const registerAndLogin = (values: { name: string; password: string }) => {
-    register(values, () => {
-      login(values, () => {
-        handleOk()
-      })
-    })
+  const registerAndLogin = async (values: {
+    name: string
+    password: string
+  }) => {
+    const res = await Axios.post(registerEnd, values)
+    if (res) {
+      login(values)
+    }
   }
 
   return (

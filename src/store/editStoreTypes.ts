@@ -21,12 +21,13 @@ export interface ICmpWithKey extends ICmp {
 
 export type EditStoreState = {
   canvas: ICanvas
+  assembly: Set<number>
 }
 
 export type AddCmpFC = (_cmp: ICmp) => void
 
 export type EditStoreAction = {
-  addCmp: AddCmpFC
+  // addCmp: AddCmpFC
 }
 
 export interface IEditStore extends EditStoreState, EditStoreAction {}

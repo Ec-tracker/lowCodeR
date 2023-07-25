@@ -1,7 +1,9 @@
 import { Card, Divider, Table, Space, Button } from 'antd'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getCanvasList } from 'src/request/list'
+import { getCanvasListEnd } from 'src/request/end'
+import Axios from 'src/request/axios'
+import useUserStore from 'src/store/userStore'
 
 interface ListItem {
   id: number
@@ -11,13 +13,17 @@ interface ListItem {
 }
 export default function ListPage() {
   const [list, setList] = useState([])
+  const isLogin = useUserStore((state) => state.isLogin)
 
-  const fresh = () => {
-    getCanvasList('', (res: any) => {
-      let data = res.content || []
-      setList(data)
-    })
+  const fresh = async () => {
+    if (!isLogin) {
+      return
+    }
+    const res: any = await Axios.get(getCanvasListEnd)
+    let data = res?.content || []
+    setList(data)
   }
+
   useEffect(() => {
     fresh()
   }, [])
