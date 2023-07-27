@@ -39,10 +39,23 @@ export const addCmp = (_cmp: ICmp) => {
 export const updateAssemblyCmpsDistance = (newStyle: Style) => {
   useEditStore.setState((draft) => {
     draft.assembly.forEach((index) => {
-      const cmp = draft.canvas.cmps[index]
+      const cmp = { ...draft.canvas.cmps[index] }
+
+      let invalid = false
 
       for (const key in newStyle) {
+        if (
+          (key === 'width' || key === 'height') &&
+          cmp.style[key] + newStyle[key] < 2
+        ) {
+          invalid = true
+          break
+        }
         cmp.style[key] += newStyle[key]
+      }
+
+      if (!invalid) {
+        draft.canvas.cmps[index] = cmp
       }
     })
   })
