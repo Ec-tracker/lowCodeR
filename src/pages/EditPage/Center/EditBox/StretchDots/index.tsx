@@ -37,12 +37,12 @@ export default function StretchDots(props: IStretchProps) {
 
       if (direction) {
         if (direction.indexOf('top') >= 0) {
-          distY = Math.abs(distY)
+          distY = 0 - distY
           newStyle.top = -distY
         }
 
         if (direction.indexOf('left') >= 0) {
-          distX = Math.abs(distX)
+          distX = 0 - distX
           newStyle.left = -distX
         }
       }
