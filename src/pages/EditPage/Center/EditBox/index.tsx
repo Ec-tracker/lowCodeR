@@ -1,8 +1,16 @@
-import useEditStore, { updateAssemblyCmpsDistance } from 'src/store/editStore'
+import useEditStore, {
+  recordCanvasChangeHistory_2,
+  updateAssemblyCmpsDistance,
+  updateSelectedCmpAttr,
+  updateSelectedCmpStyle,
+} from 'src/store/editStore'
 import styles from './index.module.less'
 import { throttle } from 'lodash'
 import useZoomStore from 'src/store/zoomStore'
 import StretchDots from './StretchDots'
+import { useState } from 'react'
+import { isTextComponent } from '../../LeftSider'
+import TextareaAutosize from 'react-textarea-autosize'
 
 export default function EditBox() {
   const [cmps, assembly] = useEditStore((store) => [
@@ -13,6 +21,10 @@ export default function EditBox() {
   const { zoom } = useZoomStore()
 
   const size = assembly.size
+
+  // 只有单个文本组件的时候才会用到
+  const selectedCmp = cmps[Array.from(assembly)[0]]
+  const [textareaFocused, setTextareaFocused] = useState(false)
 
   if (size === 0) {
     return null
@@ -60,6 +72,7 @@ export default function EditBox() {
     }
 
     const up = () => {
+      recordCanvasChangeHistory_2()
       document.removeEventListener('mousemove', move)
       document.removeEventListener('mouseup', up)
     }
@@ -78,7 +91,32 @@ export default function EditBox() {
         height,
       }}
       onMouseDown={onMouseDown}
+      onClick={(e) => {
+        e.stopPropagation()
+      }}
+      onDoubleClick={() => {
+        setTextareaFocused(true)
+      }}
     >
+      {size === 1 &&
+        selectedCmp.type === isTextComponent &&
+        textareaFocused && (
+          <TextareaAutosize
+            value={selectedCmp.value}
+            style={{
+              ...selectedCmp.style,
+              top: 2,
+              left: 2,
+            }}
+            onChange={(e) => {
+              const newValue = e.target.value
+              updateSelectedCmpAttr('value', newValue)
+            }}
+            onHeightChange={(height) => {
+              updateSelectedCmpStyle({ height })
+            }}
+          ></TextareaAutosize>
+        )}
       <StretchDots zoom={zoom} style={{ width, height }} />
     </div>
   )

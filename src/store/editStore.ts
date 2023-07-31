@@ -13,12 +13,15 @@ import Axios from 'src/request/axios'
 import { getCanvasByIdEnd, saveCanvasEnd } from 'src/request/end'
 import { enableMapSet } from 'immer'
 import { resetZoom } from './zoomStore'
+import { recordCanvasChangeHistory } from './historySlice'
 enableMapSet()
 
 const useEditStore = create(
   immer<EditStoreState & EditStoreAction>((set) => ({
     canvas: getDefaultCanvas(),
     assembly: new Set(),
+    canvasChangeHistory: [{ canvas: getDefaultCanvas(), assembly: new Set() }],
+    canvasChangeHistoryIndex: 0,
   }))
 )
 
@@ -85,6 +88,12 @@ export const fetchCanvas = async (id: number) => {
     useEditStore.setState((draft) => {
       draft.canvas = JSON.parse(res.content)
       draft.canvas.title = res.title
+      draft.assembly.clear()
+      // 初始化历史数据
+      draft.canvasChangeHistory = [
+        { canvas: draft.canvas, assembly: draft.assembly },
+      ]
+      draft.canvasChangeHistoryIndex = 0
     })
   }
 }
@@ -124,11 +133,25 @@ export const setCmpSeleted = (index: number) => {
   }
 }
 
+export const recordCanvasChangeHistory_2 = () => {
+  const store = useEditStore.getState()
+  if (
+    store.canvas ===
+    store.canvasChangeHistory[store.canvasChangeHistoryIndex].canvas
+  ) {
+    return
+  }
+
+  useEditStore.setState((draft) => {
+    recordCanvasChangeHistory(draft)
+  })
+}
+
 // 修改画布 title
 export const updateCanvasTitle = (title: string) => {
   useEditStore.setState((draft) => {
     draft.canvas.title = title
-    // recordCanvasChangeHistory(draft);
+    recordCanvasChangeHistory(draft)
   })
 }
 
@@ -136,7 +159,7 @@ export const updateCanvasTitle = (title: string) => {
 export const updateCanvasStyle = (_style: any) => {
   useEditStore.setState((draft) => {
     Object.assign(draft.canvas.style, _style)
-    // recordCanvasChangeHistory(draft);
+    recordCanvasChangeHistory(draft)
   })
 }
 
@@ -162,7 +185,7 @@ export const editAssemblyStyle = (_style: Style) => {
 
       draft.canvas.cmps[index].style = _s
 
-      // recordCanvasChangeHistory(draft)
+      recordCanvasChangeHistory(draft)
     })
   })
 }
@@ -174,7 +197,7 @@ export const updateSelectedCmpStyle = (newStyle: Style) => {
       draft.canvas.cmps[selectedCmpIndexSelector(draft)].style,
       newStyle
     )
-    // recordCanvasChangeHistory(draft)
+    recordCanvasChangeHistory(draft)
   })
 }
 
@@ -189,7 +212,7 @@ export const updateSelectedCmpAttr = (name: string, value: string) => {
   useEditStore.setState((draft: any) => {
     const selectedIndex = selectedCmpIndexSelector(draft)
     draft.canvas.cmps[selectedIndex][name] = value
-    // recordCanvasChangeHistory(draft)
+    recordCanvasChangeHistory(draft)
   })
 }
 
