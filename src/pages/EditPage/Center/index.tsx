@@ -2,16 +2,50 @@ import React from 'react'
 import styles from './index.module.less'
 import Canvas from './Canvas'
 import useEditStore, {
+  delSelectedCmps,
   setAllCmpSelected,
   setCmpSeleted,
+  updateAssemblyCmpsDistance,
 } from 'src/store/editStore'
 import useZoomStore from 'src/store/zoomStore'
 
 export default function Center() {
   const { zoom, zoomIn, zoomOut } = useZoomStore()
   const { canvas } = useEditStore()
-  const keyDown = (e) => {
-    console.log(e)
+  const keyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    console.log(e.code)
+
+    // 键盘事件
+    switch (e.code) {
+      case 'Backspace':
+        delSelectedCmps()
+        return
+
+      // 左移
+      case 'ArrowLeft':
+        e.preventDefault()
+        updateAssemblyCmpsDistance({ left: -1 })
+        return
+
+      // 右移
+      case 'ArrowRight':
+        e.preventDefault()
+        updateAssemblyCmpsDistance({ left: 1 })
+        return
+
+      // 上移
+      case 'ArrowUp':
+        e.preventDefault()
+        updateAssemblyCmpsDistance({ top: -1 })
+        return
+
+      // 下移
+      case 'ArrowDown':
+        e.preventDefault()
+        updateAssemblyCmpsDistance({ top: 1 })
+        return
+    }
+
     if (e.altKey) {
       switch (e.code) {
         case 'KeyA':
@@ -35,11 +69,11 @@ export default function Center() {
       id="center"
       className={styles.main}
       style={{
-        minHeight: (zoom / 100) * canvas.style.height + 100,
+        minHeight: (zoom / 100) * canvas.content.style.height + 100,
       }}
       tabIndex={0}
-      onClick={(e) => {
-        if (e.target?.id === 'center') {
+      onClick={(e: React.MouseEvent) => {
+        if ((e.target as HTMLElement).id.indexOf('cmp') === -1) {
           setCmpSeleted(-1)
         }
       }}

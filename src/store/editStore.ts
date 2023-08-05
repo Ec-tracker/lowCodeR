@@ -3,10 +3,11 @@ import { immer } from 'zustand/middleware/immer'
 import {
   EditStoreState,
   EditStoreAction,
-  ICanvas,
+  IContent,
   ICmp,
   Style,
   IEditStore,
+  ICmpWithKey,
 } from './editStoreTypes'
 import { getOnlyKey } from 'src/utils'
 import Axios from 'src/request/axios'
@@ -14,20 +15,38 @@ import { getCanvasByIdEnd, saveCanvasEnd } from 'src/request/end'
 import { enableMapSet } from 'immer'
 import { resetZoom } from './zoomStore'
 import { recordCanvasChangeHistory } from './historySlice'
+import { cloneDeep } from 'lodash'
 enableMapSet()
 
 const useEditStore = create(
   immer<EditStoreState & EditStoreAction>((set) => ({
-    canvas: getDefaultCanvas(),
+    canvas: {
+      id: null,
+      title: '未命名',
+      type: 'content',
+      content: getDefaultCanvasContent(),
+    },
     assembly: new Set(),
-    canvasChangeHistory: [{ canvas: getDefaultCanvas(), assembly: new Set() }],
+    canvasChangeHistory: [
+      {
+        canvas: {
+          id: null,
+          title: '未命名',
+          type: 'content',
+          content: getDefaultCanvasContent(),
+        },
+        assembly: new Set(),
+      },
+    ],
     canvasChangeHistoryIndex: 0,
   }))
 )
 
 export const clearCanvas = () => {
   useEditStore.setState((draft) => {
-    draft.canvas = getDefaultCanvas()
+    draft.canvas.content = getDefaultCanvasContent()
+    draft.assembly.clear()
+    recordCanvasChangeHistory(draft)
   })
 
   resetZoom()
@@ -35,15 +54,51 @@ export const clearCanvas = () => {
 
 export const addCmp = (_cmp: ICmp) => {
   useEditStore.setState((draft) => {
-    draft.canvas.cmps.push({ ..._cmp, key: getOnlyKey() })
-    draft.assembly = new Set([draft.canvas.cmps.length - 1])
+    draft.canvas.content.cmps.push({ ..._cmp, key: getOnlyKey() })
+    draft.assembly = new Set([draft.canvas.content.cmps.length - 1])
+  })
+}
+
+export const addAssemblyCmps = () => {
+  useEditStore.setState((draft) => {
+    const cmps = draft.canvas.content.cmps
+    const assembly = draft.assembly
+    const newCmps: Array<ICmpWithKey> = []
+    const newSet: Set<number> = new Set()
+    let startIndex = draft.canvas.content.cmps.length
+
+    assembly.forEach((index) => {
+      const cmp = cmps[index]
+      const newCmp = cloneDeep(cmp)
+      newCmp.key = getOnlyKey()
+      newCmp.style.height += 40
+      newCmp.style.width += 40
+
+      newCmps.push(newCmp)
+      newSet.add(startIndex++)
+    })
+
+    draft.canvas.content.cmps.concat(newCmps)
+    draft.assembly = newSet
+  })
+}
+
+export const delSelectedCmps = () => {
+  useEditStore.setState((draft) => {
+    const assembly = draft.assembly
+
+    draft.canvas.content.cmps = draft.canvas.content.cmps.filter(
+      (_, index) => !assembly.has(index)
+    )
+    draft.assembly.clear()
+    recordCanvasChangeHistory(draft)
   })
 }
 
 export const updateAssemblyCmpsDistance = (newStyle: Style) => {
   useEditStore.setState((draft) => {
     draft.assembly.forEach((index) => {
-      const cmp = { ...draft.canvas.cmps[index] }
+      const cmp = { ...draft.canvas.content.cmps[index] }
 
       let invalid = false
 
@@ -59,26 +114,32 @@ export const updateAssemblyCmpsDistance = (newStyle: Style) => {
       }
 
       if (!invalid) {
-        draft.canvas.cmps[index] = cmp
+        draft.canvas.content.cmps[index] = cmp
       }
     })
   })
 }
 
 export const saveCanvas = async (
-  id: number | null,
-  type: string,
-  successCallback: (id: number) => void
+  successCallback: (id: number, isNew: boolean) => void
 ) => {
   const canvas = useEditStore.getState().canvas
+  let isNew = canvas.id == null
+
   const res: any = await Axios.post(saveCanvasEnd, {
-    id,
+    id: canvas.id,
     title: canvas.title,
-    content: JSON.stringify(canvas),
-    type,
+    content: JSON.stringify(canvas.content),
+    type: canvas.title,
   })
 
-  successCallback(res?.id)
+  successCallback(res?.id, isNew)
+
+  if (isNew) {
+    useEditStore.setState((draft) => {
+      draft.canvas.id = res.id
+    })
+  }
 }
 
 export const fetchCanvas = async (id: number) => {
@@ -87,7 +148,10 @@ export const fetchCanvas = async (id: number) => {
   if (res) {
     useEditStore.setState((draft) => {
       draft.canvas = JSON.parse(res.content)
+      draft.canvas.id = res.id
       draft.canvas.title = res.title
+      draft.canvas.type = res.type
+
       draft.assembly.clear()
       // 初始化历史数据
       draft.canvasChangeHistory = [
@@ -100,7 +164,7 @@ export const fetchCanvas = async (id: number) => {
 
 export const setAllCmpSelected = () => {
   useEditStore.setState((draft) => {
-    let len = draft.canvas.cmps.length
+    let len = draft.canvas.content.cmps.length
     draft.assembly = new Set(Array.from({ length: len }, (_, b) => b))
   })
 }
@@ -158,7 +222,7 @@ export const updateCanvasTitle = (title: string) => {
 // ! 更新画布属性
 export const updateCanvasStyle = (_style: any) => {
   useEditStore.setState((draft) => {
-    Object.assign(draft.canvas.style, _style)
+    Object.assign(draft.canvas.content.style, _style)
     recordCanvasChangeHistory(draft)
   })
 }
@@ -167,8 +231,8 @@ export const updateCanvasStyle = (_style: any) => {
 export const editAssemblyStyle = (_style: Style) => {
   useEditStore.setState((draft) => {
     draft.assembly.forEach((index: number) => {
-      const _s = { ...draft.canvas.cmps[index].style }
-      const canvasStyle = draft.canvas.style
+      const _s = { ...draft.canvas.content.cmps[index].style }
+      const canvasStyle = draft.canvas.content.style
       if (_style.right === 0) {
         // 计算left
         _s.left = canvasStyle.width - _s.width
@@ -183,7 +247,7 @@ export const editAssemblyStyle = (_style: Style) => {
         Object.assign(_s, _style)
       }
 
-      draft.canvas.cmps[index].style = _s
+      draft.canvas.content.cmps[index].style = _s
 
       recordCanvasChangeHistory(draft)
     })
@@ -194,7 +258,7 @@ export const editAssemblyStyle = (_style: Style) => {
 export const updateSelectedCmpStyle = (newStyle: Style) => {
   useEditStore.setState((draft) => {
     Object.assign(
-      draft.canvas.cmps[selectedCmpIndexSelector(draft)].style,
+      draft.canvas.content.cmps[selectedCmpIndexSelector(draft)].style,
       newStyle
     )
     recordCanvasChangeHistory(draft)
@@ -211,16 +275,96 @@ export const selectedCmpIndexSelector = (store: IEditStore): number => {
 export const updateSelectedCmpAttr = (name: string, value: string) => {
   useEditStore.setState((draft: any) => {
     const selectedIndex = selectedCmpIndexSelector(draft)
-    draft.canvas.cmps[selectedIndex][name] = value
+    draft.canvas.content.cmps[selectedIndex][name] = value
     recordCanvasChangeHistory(draft)
   })
 }
 
+export const topZIndex = () => {
+  useEditStore.setState((draft: any) => {
+    const selectedIndex = selectedCmpIndexSelector(draft)
+    const cmps = draft.canvas.content.cmps
+
+    if (cmps.length - 1 === selectedIndex) {
+      return
+    }
+
+    draft.canvas.content.cmps = cmps
+      .slice(0, selectedIndex)
+      .concat(cmps.slice(selectedIndex + 1))
+      .concat(cmps[selectedIndex])
+
+    draft.assembly = new Set([cmps.length - 1])
+    recordCanvasChangeHistory(draft)
+  })
+}
+
+export const bottomZIndex = () => {
+  useEditStore.setState((draft: any) => {
+    const selectedIndex = selectedCmpIndexSelector(draft)
+    const cmps = draft.canvas.content.cmps
+
+    if (selectedIndex === 0) {
+      return
+    }
+
+    draft.canvas.content.cmps = cmps
+      .slice(0, selectedIndex)
+      .concat(cmps.slice(selectedIndex + 1))
+      .unshift(cmps[selectedIndex])
+
+    draft.assembly = new Set([0])
+    recordCanvasChangeHistory(draft)
+  })
+}
+
+export const addZIndex = () => {
+  useEditStore.setState((draft: any) => {
+    const selectedIndex = selectedCmpIndexSelector(draft)
+    const cmps = draft.canvas.content.cmps
+
+    if (cmps.length - 1 === selectedIndex) {
+      return
+    }
+
+    ;[
+      draft.canvas.content.cmps[selectedIndex],
+      draft.canvas.content.cmps[selectedIndex + 1],
+    ] = [
+      draft.canvas.content.cmps[selectedIndex + 1],
+      draft.canvas.content.cmps[selectedIndex],
+    ]
+
+    draft.assembly = new Set([selectedIndex + 1])
+
+    recordCanvasChangeHistory(draft)
+  })
+}
+export const subZIndex = () => {
+  useEditStore.setState((draft: any) => {
+    const selectedIndex = selectedCmpIndexSelector(draft)
+
+    if (0 === selectedIndex) {
+      return
+    }
+
+    ;[
+      draft.canvas.content.cmps[selectedIndex],
+      draft.canvas.content.cmps[selectedIndex - 1],
+    ] = [
+      draft.canvas.content.cmps[selectedIndex - 1],
+      draft.canvas.content.cmps[selectedIndex],
+    ]
+
+    draft.assembly = new Set([0])
+
+    recordCanvasChangeHistory(draft)
+  })
+}
 export default useEditStore
 
-function getDefaultCanvas(): ICanvas {
+function getDefaultCanvasContent(): IContent {
   return {
-    title: '未命名',
     // 页面样式
     style: {
       width: 320,

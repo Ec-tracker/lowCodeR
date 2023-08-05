@@ -8,13 +8,14 @@ import styles from './index.module.less'
 import { throttle } from 'lodash'
 import useZoomStore from 'src/store/zoomStore'
 import StretchDots from './StretchDots'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { isTextComponent } from '../../LeftSider'
 import TextareaAutosize from 'react-textarea-autosize'
+import Menu from '../Menu'
 
 export default function EditBox() {
   const [cmps, assembly] = useEditStore((store) => [
-    store.canvas.cmps,
+    store.canvas.content.cmps,
     store.assembly,
   ])
 
@@ -22,9 +23,16 @@ export default function EditBox() {
 
   const size = assembly.size
 
+  const selectedIndex = Array.from(assembly)[0]
+
   // 只有单个文本组件的时候才会用到
   const selectedCmp = cmps[Array.from(assembly)[0]]
   const [textareaFocused, setTextareaFocused] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
+
+  useEffect(() => {
+    setShowMenu(false)
+  }, [selectedIndex])
 
   if (size === 0) {
     return null
@@ -97,6 +105,14 @@ export default function EditBox() {
       onDoubleClick={() => {
         setTextareaFocused(true)
       }}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        setShowMenu(true)
+      }}
+      onMouseLeave={() => {
+        setTextareaFocused(false)
+        setShowMenu(false)
+      }}
     >
       {size === 1 &&
         selectedCmp.type === isTextComponent &&
@@ -117,6 +133,8 @@ export default function EditBox() {
             }}
           ></TextareaAutosize>
         )}
+
+      {showMenu && <Menu style={{ left: width }} assemblySize={size} />}
       <StretchDots zoom={zoom} style={{ width, height }} />
     </div>
   )

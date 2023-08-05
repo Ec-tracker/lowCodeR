@@ -37,7 +37,7 @@ const Cmp = memo((props: ICmpProps) => {
   return (
     <div
       className={classNames(styles.main, isSelected && 'selectedBorder')}
-      style={{ ...outerStyle, transform }}
+      style={{ ...outerStyle, transform, zIndex: index }}
       onClick={setSelected}
       id={'cmp' + cmp.key}
     >

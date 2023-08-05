@@ -14,7 +14,7 @@ import useZoomStore, { resetZoom } from 'src/store/zoomStore'
 
 export default function Canvas() {
   const { canvas, assembly } = useEditStore()
-  const { cmps, style } = canvas
+  const { cmps, style } = canvas.content
   const id = useCanvasId()
 
   const { zoom } = useZoomStore()

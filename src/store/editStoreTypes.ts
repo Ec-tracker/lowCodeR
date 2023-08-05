@@ -3,7 +3,13 @@ import React from 'react'
 export type Style = any
 
 export interface ICanvas {
+  id: null | number
   title: string
+  type: 'content' | 'template'
+  content: IContent
+}
+
+export interface IContent {
   style: Style
   cmps: Array<ICmpWithKey>
 }
