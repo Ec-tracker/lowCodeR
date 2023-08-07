@@ -52,19 +52,19 @@ export default function EditBox() {
     right = Math.max(right, cmp.style.left + cmp.style.width)
   })
 
-  let width = right - left + 8
-  let height = bottom - top + 8
+  let width = right - left + 4
+  let height = bottom - top + 4
 
-  top -= 4
-  left -= 4
+  top -= 2
+  left -= 2
 
-  const onMouseDown = throttle((e) => {
+  const onMouseDown = throttle((e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault()
 
     let startX = e.pageX
     let startY = e.pageY
 
-    const move = (e) => {
+    const move = () => {
       const x = e.pageX
       const y = e.pageY
 
@@ -134,7 +134,14 @@ export default function EditBox() {
           ></TextareaAutosize>
         )}
 
-      {showMenu && <Menu style={{ left: width }} assemblySize={size} />}
+      {showMenu && (
+        <Menu
+          style={{ left: width }}
+          assemblySize={size}
+          cmps={cmps}
+          selectedIndex={selectedIndex}
+        />
+      )}
       <StretchDots zoom={zoom} style={{ width, height }} />
     </div>
   )

@@ -8,6 +8,10 @@ import useEditStore, {
   updateAssemblyCmpsDistance,
 } from 'src/store/editStore'
 import useZoomStore from 'src/store/zoomStore'
+import { ICmpWithKey } from 'src/store/editStoreTypes'
+import { isImgComponent, isGraphComponent } from '../LeftSider'
+import classNames from 'classnames'
+import { pick } from 'lodash'
 
 export default function Center() {
   const { zoom, zoomIn, zoomOut } = useZoomStore()
