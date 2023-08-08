@@ -19,7 +19,11 @@ export const saveCanvasEnd = end + '/api/web/content/save'
 export const deleteCanvasByIdEnd = end + '/api/web/content/delete'
 
 // 画布列表
-export const getCanvasListEnd = end + '/api/web/content/list?pageSize=1000'
+export const getCanvasListEnd = end + '/api/web/content/list?'
 export const getTemplateListEnd = end + '/api/web/template/list?pageSize=1000'
+
+// 发布、下架
+export const publishEnd = end + '/api/web/content/publish'
+export const unpublishEnd = end + '/api/web/content/unpublish '
 
 export const myAxios = axios

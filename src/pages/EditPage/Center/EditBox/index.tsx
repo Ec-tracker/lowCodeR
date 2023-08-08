@@ -12,15 +12,17 @@ import { useState, useEffect } from 'react'
 import { isTextComponent } from '../../LeftSider'
 import TextareaAutosize from 'react-textarea-autosize'
 import Menu from '../Menu'
+import AlignLines from './AlignLines'
 
 export default function EditBox() {
-  const [cmps, assembly] = useEditStore((store) => [
-    store.canvas.content.cmps,
-    store.assembly,
+  const [canvas, assembly] = useEditStore((state) => [
+    state.canvas,
+    state.assembly,
   ])
 
   const { zoom } = useZoomStore()
 
+  const { cmps, style: canvasStyle } = canvas.content
   const size = assembly.size
 
   const selectedIndex = Array.from(assembly)[0]
@@ -64,7 +66,7 @@ export default function EditBox() {
     let startX = e.pageX
     let startY = e.pageY
 
-    const move = () => {
+    const move = (e) => {
       const x = e.pageX
       const y = e.pageY
 
@@ -73,7 +75,7 @@ export default function EditBox() {
       disX = (disX * 100) / zoom
       disY = (disY * 100) / zoom
 
-      updateAssemblyCmpsDistance({ top: disY, left: disX })
+      updateAssemblyCmpsDistance({ top: disY, left: disX }, true)
 
       startX = x
       startY = y
@@ -89,60 +91,63 @@ export default function EditBox() {
     document.addEventListener('mouseup', up)
   }, 200)
   return (
-    <div
-      className={styles.main}
-      style={{
-        zIndex: 99999,
-        top,
-        left,
-        width,
-        height,
-      }}
-      onMouseDown={onMouseDown}
-      onClick={(e) => {
-        e.stopPropagation()
-      }}
-      onDoubleClick={() => {
-        setTextareaFocused(true)
-      }}
-      onContextMenu={(e) => {
-        e.preventDefault()
-        setShowMenu(true)
-      }}
-      onMouseLeave={() => {
-        setTextareaFocused(false)
-        setShowMenu(false)
-      }}
-    >
-      {size === 1 &&
-        selectedCmp.type === isTextComponent &&
-        textareaFocused && (
-          <TextareaAutosize
-            value={selectedCmp.value}
-            style={{
-              ...selectedCmp.style,
-              top: 2,
-              left: 2,
-            }}
-            onChange={(e) => {
-              const newValue = e.target.value
-              updateSelectedCmpAttr('value', newValue)
-            }}
-            onHeightChange={(height) => {
-              updateSelectedCmpStyle({ height })
-            }}
-          ></TextareaAutosize>
-        )}
+    <>
+      <AlignLines canvasStyle={canvasStyle}></AlignLines>
+      <div
+        className={styles.main}
+        style={{
+          zIndex: 99999,
+          top,
+          left,
+          width,
+          height,
+        }}
+        onMouseDown={onMouseDown}
+        onClick={(e) => {
+          e.stopPropagation()
+        }}
+        onDoubleClick={() => {
+          setTextareaFocused(true)
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          setShowMenu(true)
+        }}
+        onMouseLeave={() => {
+          setTextareaFocused(false)
+          setShowMenu(false)
+        }}
+      >
+        {size === 1 &&
+          selectedCmp.type === isTextComponent &&
+          textareaFocused && (
+            <TextareaAutosize
+              value={selectedCmp.value}
+              style={{
+                ...selectedCmp.style,
+                top: 2,
+                left: 2,
+              }}
+              onChange={(e) => {
+                const newValue = e.target.value
+                updateSelectedCmpAttr('value', newValue)
+              }}
+              onHeightChange={(height) => {
+                updateSelectedCmpStyle({ height })
+              }}
+            ></TextareaAutosize>
+          )}
 
-      {showMenu && (
-        <Menu
-          style={{ left: width }}
-          assemblySize={size}
-          cmps={cmps}
-          selectedIndex={selectedIndex}
-        />
-      )}
-      <StretchDots zoom={zoom} style={{ width, height }} />
-    </div>
+        {showMenu && (
+          <Menu
+            style={{ left: width }}
+            assemblySize={size}
+            cmps={cmps}
+            selectedIndex={selectedIndex}
+          />
+        )}
+        <StretchDots zoom={zoom} style={{ width, height }} />
+      </div>
+    </>
   )
 }

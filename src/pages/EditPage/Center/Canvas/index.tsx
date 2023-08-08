@@ -11,21 +11,23 @@ import { useCanvasId } from 'src/store/hooks'
 import EditBox from '../EditBox'
 import Zoom from '../Zoom'
 import useZoomStore, { resetZoom } from 'src/store/zoomStore'
+import useUserStore from 'src/store/userStore'
 
 export default function Canvas() {
   const { canvas, assembly } = useEditStore()
   const { cmps, style } = canvas.content
+  const { isLogin } = useUserStore()
   const id = useCanvasId()
 
   const { zoom } = useZoomStore()
   useEffect(() => {
-    if (id) {
+    if (id && isLogin) {
       fetchCanvas(id)
     } else {
       clearCanvas()
     }
     resetZoom()
-  }, [])
+  }, [isLogin])
 
   const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
     if (!e.dataTransfer.getData('drag-cmp')) return
@@ -65,14 +67,15 @@ export default function Canvas() {
       onDragOver={allowDrop}
     >
       <EditBox />
-      {cmps.map((cmp, index) => (
-        <Cmp
-          key={cmp.key}
-          index={index}
-          cmp={cmp}
-          isSelected={assembly.has(index)}
-        ></Cmp>
-      ))}
+      {isLogin &&
+        cmps.map((cmp, index) => (
+          <Cmp
+            key={cmp.key}
+            index={index}
+            cmp={cmp}
+            isSelected={assembly.has(index)}
+          ></Cmp>
+        ))}
       <Zoom />
     </div>
   )
