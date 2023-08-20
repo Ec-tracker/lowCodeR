@@ -1,5 +1,5 @@
 import axios from './axios'
-export const end = '//www.bubucuo.cn'
+export const end = ''
 // export const end = '' //"//template.josephxia.com";
 
 // 注册 post

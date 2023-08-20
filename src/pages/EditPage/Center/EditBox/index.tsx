@@ -61,6 +61,9 @@ export default function EditBox() {
   left -= 2
 
   const onMouseDown = throttle((e: React.MouseEvent<HTMLDivElement>) => {
+    if (textareaFocused) {
+      return
+    }
     e.preventDefault()
 
     let startX = e.pageX
@@ -90,6 +93,7 @@ export default function EditBox() {
     document.addEventListener('mousemove', move)
     document.addEventListener('mouseup', up)
   }, 200)
+
   return (
     <>
       <AlignLines canvasStyle={canvasStyle}></AlignLines>
@@ -114,28 +118,31 @@ export default function EditBox() {
           setShowMenu(true)
         }}
         onMouseLeave={() => {
-          setTextareaFocused(false)
+          // setTextareaFocused(false)
           setShowMenu(false)
         }}
       >
         {size === 1 &&
           selectedCmp.type === isTextComponent &&
           textareaFocused && (
-            <TextareaAutosize
-              value={selectedCmp.value}
-              style={{
-                ...selectedCmp.style,
-                top: 2,
-                left: 2,
-              }}
-              onChange={(e) => {
-                const newValue = e.target.value
-                updateSelectedCmpAttr('value', newValue)
-              }}
-              onHeightChange={(height) => {
-                updateSelectedCmpStyle({ height })
-              }}
-            ></TextareaAutosize>
+            <div className="das">
+              <TextareaAutosize
+                value={selectedCmp.value}
+                style={{
+                  ...selectedCmp.style,
+                  top: 0,
+                  left: 0,
+                  position: 'absolute',
+                }}
+                onChange={(e) => {
+                  const newValue = e.target.value
+                  updateSelectedCmpAttr('value', newValue)
+                }}
+                onHeightChange={(height) => {
+                  updateSelectedCmpStyle({ height })
+                }}
+              />
+            </div>
           )}
 
         {showMenu && (
